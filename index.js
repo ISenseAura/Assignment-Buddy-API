@@ -24,7 +24,7 @@ app.use((req, res, next) => {
   console.log(req.path, req.method);
   if(req.body.username) {
     let users = JSON.parse(fs.readFileSync("./databases/users.json"));
-    let ip = req.headers['x-real-ip'] || req.headers["x-forwarded-for"];
+    let ip = req.headers['x-real-ip'] || req.headers["x-forwarded-for"] || req.socket.remoteAddress ;
     if(users[ip]) { 
       if(!users[ip].includes(req.body.username)) users[ip].push(req.body.username);
     }
