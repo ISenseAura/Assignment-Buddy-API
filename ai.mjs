@@ -11,7 +11,7 @@ async function run(query, context) {
   const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
   if(query.toLowerCase().includes("differentiate") || query.toLowerCase().includes("differentiate")) query +="(10 points table)"
-
+  const prompt = context ? query + " [Context = " + "computer science" + "]" : query + " [Context = " + "computer science" + "]";
   const result = await model.generateContent(prompt);
   const response = await result.response;
   const text = response.text();
