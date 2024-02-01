@@ -22,6 +22,16 @@ app.use(express.json());
 
 app.use((req, res, next) => {
   console.log(req.path, req.method);
+  if(req.body.username) {
+    let users = JSON.parse(fs.readFileSync("./databases/users.json"));
+    let ip = req.headers['x-real-ip'] || req.headers["x-forwarded-for"];
+    if(users[ip]) { 
+      if(!users[ip].includes(req.body.username)) users[ip].push(req.body.username);
+    }
+    users[ip] = [req.body.username];
+    fs.writeFileSync("./databases/users.json",JSON.stringify(users));
+    console.log(ip);
+  }
   next();
 });
 
