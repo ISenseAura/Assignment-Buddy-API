@@ -104,7 +104,8 @@ class Generator {
 }
 
 
-  askQ(qs, authKey, username) {
+  askQ(qs, authKey, username,notFirst) {
+    if(!notFirst) {
     if (!subjects[this.subjectPrefix])
       throw Error("ERROR :  Invalid subject prefix");
     if (!config.hasAccess(authKey, username)) {
@@ -113,6 +114,7 @@ class Generator {
         this.path
       );
     }
+  }
     console.log("Generating Answer...");
     this.AIStream = spawn("node", ["ai.mjs"]);
     this.AIStream.on("error", (e) => console.log(e));
@@ -131,7 +133,7 @@ class Generator {
       if (qs[this.c]) {
         this.AIStream.kill();
         this.AIStream = null;
-        this.askQ(qs, authKey, username);
+        this.askQ(qs, authKey, username,true);
       } else {
         this.readMeStream.write(` <i>${website} </i>`);
         this.readMeStream.end();

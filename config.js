@@ -1,5 +1,5 @@
 module.exports = {
-    whiteList : ["ompatil","mayurhiwale"],
+    whiteList : ["ompatil","mayurhiwale","mayur"],
     authKey : process.env.AUTH_KEY,
     subjects : {
         bis: "Business Intelligence System",

@@ -272,6 +272,42 @@ app.post("/api/totalassignments", (req, res) => {
   });
 });
 
+
+app.post("/api/clear",(req,res) => {
+let {username,authKey,subject} = req.body;
+if(!username || !authKey || (!config.subjects[subject] && subject != "all")) return res.send({success : false,data : "Not enough data"});
+
+try {
+  if(subject == "all") {
+    Object.keys(config.subjects).forEach((ele) => {
+      clearFiles(ele);
+    })
+  } else {
+    clearFiles(subject)
+  }
+  return res.send({succes : true,data : "Done"})
+}
+catch(e) {
+  console.log(e);
+  res.send({success : false, data : e.message})
+}
+
+function clearFiles(directory) {
+fs.readdir("./documents/" + directory, (err, files) => {
+  if (err) throw err;
+
+  for (const file of files) {
+    fs.unlink("./documents/" + directory + "/" + file, (err) => {
+      if (err) throw err;
+    });
+  }
+});
+}
+
+
+})
+
+
 app.listen(port, () => {
   console.log(`Listening on port ${port}`);
 });
