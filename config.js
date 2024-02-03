@@ -9,7 +9,7 @@ module.exports = {
         misc: "Miscellaneous"
       },
     
-    fileDeleteDelay : 300, // 2 minutes
+    fileDeleteDelay : 30 * 60, // 30 minutes
 
     hasAccess: function(authKey,username) {
         console.log(this.authKey);
