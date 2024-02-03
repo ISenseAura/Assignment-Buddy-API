@@ -1,5 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
+const Stream = require('stream')
+
 dotenv.config();
 
 require("./globals");
@@ -141,10 +143,13 @@ app.get("/api/viewmd/:subject/:number", (req, res) => {
   let { subject, number } = req.params;
   let path = `./documents/${subject}/${subject + number}.md`;
   let pdfFile = fs.createReadStream(path);
+
   pdfFile.on("error", (err) => {
     res.send({ success: false, data: "Assignment does not exist" });
     return;
   });
+
+
  pdfFile.pipe(res);
 });
 
