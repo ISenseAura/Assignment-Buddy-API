@@ -77,6 +77,16 @@ class SubjectManager {
     fs.writeFileSync("./databases/" + this.subjectPrefix + ".json",JSON.stringify(this));
   }
 
+  reset() {
+    this.assignments = {};
+    this.experiments = {};
+    this.questionbanks = {};
+    this.totalAssignments = 0;
+    this.totalExperiments = 0;
+    this.totalQuestionBanks = 0;
+    this.__export__();
+  }
+
   delete(number,type) {
     type = type.toLowerCase();
     switch(type.charAt(0)) {

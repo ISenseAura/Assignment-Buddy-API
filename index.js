@@ -227,17 +227,19 @@ app.post("/api/delete", (req, res) => {
       data: "The number parameter must only contain numbers",
     });
 
-  let path = `${config.parseFilePath(subject,number,type)}.pdf`;
- 
+  let path = `${config.parseFilePath(subject, number, type)}.pdf`;
+
   if (!config.hasAccess(authKey, username))
     return res.send({ success: false, data: "Access denied" });
   try {
     let manager = new SubjectManager(subject);
-    manager.delete(number,type);
-  fs.unlinkSync(path.replace(".pdf",".md"));
-  fs.unlinkSync(path);
-  res.send({ success: true, data: "deleted" })
-  } catch (e) { res.send({ success: false, data: "File does not exist" })}
+    manager.delete(number, type);
+    fs.unlinkSync(path.replace(".pdf", ".md"));
+    fs.unlinkSync(path);
+    res.send({ success: true, data: "deleted" });
+  } catch (e) {
+    res.send({ success: false, data: "File does not exist" });
+  }
 });
 
 app.post("/api/download", (req, res) => {
@@ -272,41 +274,40 @@ app.post("/api/totalassignments", (req, res) => {
   });
 });
 
+app.post("/api/clear", (req, res) => {
+  let { username, authKey, subject } = req.body;
+  if (!username || !authKey || (!config.subjects[subject] && subject != "all"))
+    return res.send({ success: false, data: "Not enough data" });
 
-app.post("/api/clear",(req,res) => {
-let {username,authKey,subject} = req.body;
-if(!username || !authKey || (!config.subjects[subject] && subject != "all")) return res.send({success : false,data : "Not enough data"});
-
-try {
-  if(subject == "all") {
-    Object.keys(config.subjects).forEach((ele) => {
-      clearFiles(ele);
-    })
-  } else {
-    clearFiles(subject)
+  try {
+    if (subject == "all") {
+      Object.keys(config.subjects).forEach((ele) => {
+        clearFiles(ele);
+      });
+    } else {
+      clearFiles(subject);
+    }
+    return res.send({ succes: true, data: "Done" });
+  } catch (e) {
+    console.log(e);
+    res.send({ success: false, data: e.message });
   }
-  return res.send({succes : true,data : "Done"})
-}
-catch(e) {
-  console.log(e);
-  res.send({success : false, data : e.message})
-}
 
-function clearFiles(directory) {
-fs.readdir("./documents/" + directory, (err, files) => {
-  if (err) throw err;
-
-  for (const file of files) {
-    fs.unlink("./documents/" + directory + "/" + file, (err) => {
+  function clearFiles(directory) {
+    fs.readdir("./documents/" + directory, (err, files) => {
       if (err) throw err;
+
+      for (const file of files) {
+        fs.unlink("./documents/" + directory + "/" + file, (err) => {
+          if (err) throw err;
+        });
+      }
     });
+
+    let manager = new SubjectManager(directory);
+    manager.reset();
   }
 });
-}
-
-
-})
-
 
 app.listen(port, () => {
   console.log(`Listening on port ${port}`);
