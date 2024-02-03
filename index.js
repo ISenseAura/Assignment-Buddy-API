@@ -1,6 +1,6 @@
 const express = require("express");
 const dotenv = require("dotenv");
-const Stream = require('stream')
+const Stream = require("stream");
 
 dotenv.config();
 
@@ -24,14 +24,18 @@ app.use(express.json());
 
 app.use((req, res, next) => {
   console.log(req.path, req.method);
-  if(req.body.username) {
+  if (req.body.username) {
     let users = JSON.parse(fs.readFileSync("./databases/users.json"));
-    let ip = req.headers['x-real-ip'] || req.headers["x-forwarded-for"] || req.socket.remoteAddress ;
-    if(users[ip]) { 
-      if(!users[ip].includes(req.body.username)) users[ip].push(req.body.username);
+    let ip =
+      req.headers["x-real-ip"] ||
+      req.headers["x-forwarded-for"] ||
+      req.socket.remoteAddress;
+    if (users[ip]) {
+      if (!users[ip].includes(req.body.username))
+        users[ip].push(req.body.username);
     }
     users[ip] = [req.body.username];
-    fs.writeFileSync("./databases/users.json",JSON.stringify(users));
+    fs.writeFileSync("./databases/users.json", JSON.stringify(users));
     console.log(ip);
   }
   next();
@@ -80,7 +84,17 @@ app.get("/", (req, res) => {
 });
 
 app.post("/api/generate", (req, res) => {
-  let { subject, number, qs, download, username, authKey, type } = req.body;
+  let {
+    subject,
+    number,
+    qs,
+    download,
+    username,
+    authKey,
+    type,
+    givendate,
+    submissiondate,
+  } = req.body;
 
   if (!username)
     return res.send({ success: false, data: "Invalid user session" });
@@ -110,7 +124,27 @@ app.post("/api/generate", (req, res) => {
 
     if (config.hasAccess(authKey, username)) {
       let manager = new SubjectManager(subject);
-      manager.addAssignment(qs, number, false, false, username);
+      switch (type.toLowerCase().charAt(0)) {
+        case "e": {
+          manager.addExperiment(
+            qs[0],
+            number,
+            type.toLowerCase().replace("experiment", ""),
+            givendate,
+            submissiondate,
+            username
+          );
+        }
+
+        default:
+          manager.addAssignment(
+            qs,
+            number,
+            givendate,
+            submissiondate,
+            username
+          );
+      }
       delete manager;
     }
 
@@ -127,9 +161,9 @@ app.post("/api/generate", (req, res) => {
   }
 });
 
-app.get("/api/download/:subject/:number", (req, res) => {
-  let { subject, number } = req.params;
-  let path = `./documents/${subject}/${subject + number}.pdf`;
+app.get("/api/download/:subject/:filename", (req, res) => {
+  let { subject, filename, type } = req.params;
+  let path = `./documents/${subject}/${filename}.pdf`;
   let pdfFile = fs.createReadStream(path);
   pdfFile.on("error", (err) => {
     res.send({ success: false, data: "Assignment does not exist" });
@@ -139,9 +173,9 @@ app.get("/api/download/:subject/:number", (req, res) => {
   // pdfFile.pipe(res);
 });
 
-app.get("/api/viewmd/:subject/:number", (req, res) => {
-  let { subject, number } = req.params;
-  let path = `./documents/${subject}/${subject + number}.md`;
+app.get("/api/viewmd/:subject/:filename", (req, res) => {
+  let { subject, filename } = req.params;
+  let path = `./documents/${subject}/${filename}.md`;
   let pdfFile = fs.createReadStream(path);
 
   pdfFile.on("error", (err) => {
@@ -149,8 +183,7 @@ app.get("/api/viewmd/:subject/:number", (req, res) => {
     return;
   });
 
-
- pdfFile.pipe(res);
+  pdfFile.pipe(res);
 });
 
 app.get("/api/details/:subject", (req, res) => {
@@ -166,9 +199,9 @@ app.get("/api/details/:subject", (req, res) => {
   // pdfFile.pipe(res);
 });
 
-app.get("/api/view/:subject/:number", (req, res) => {
-  let { subject, number } = req.params;
-  let path = `./documents/${subject}/${subject + number}.pdf`;
+app.get("/api/view/:subject/:filename", (req, res) => {
+  let { subject, filename } = req.params;
+  let path = `./documents/${subject}/${filename}.pdf`;
   let pdfFile = fs.createReadStream(path);
   pdfFile.on("error", (err) => {
     res.send({
@@ -182,7 +215,7 @@ app.get("/api/view/:subject/:number", (req, res) => {
 });
 
 app.post("/api/delete", (req, res) => {
-  let { subject, number, authKey, username } = req.body;
+  let { subject, number, authKey, username, type } = req.body;
 
   if (!username)
     return res.send({ success: false, data: "Invalid user session" });
@@ -194,19 +227,17 @@ app.post("/api/delete", (req, res) => {
       data: "The number parameter must only contain numbers",
     });
 
-  let path = `./documents/${subject}/${subject + number}.pdf`;
-  let pdfFile = fs.createReadStream(path);
-  pdfFile.on("error", (err) => {
-    res.send({
-      success: false,
-      data: "Assignment does not exist or has already been deleted",
-    });
-    return;
-  });
-
+  let path = `${config.parseFilePath(subject,number,type)}.pdf`;
+ 
   if (!config.hasAccess(authKey, username))
     return res.send({ success: false, data: "Access denied" });
+  try {
+    let manager = new SubjectManager(subject);
+    manager.delete(number,type);
+  fs.unlinkSync(path.replace(".pdf",".md"));
   fs.unlinkSync(path);
+  res.send({ success: true, data: "deleted" })
+  } catch (e) { res.send({ success: false, data: "File does not exist" })}
 });
 
 app.post("/api/download", (req, res) => {
