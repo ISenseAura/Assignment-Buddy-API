@@ -4,7 +4,6 @@ let { spawn } = require("child_process");
 const { mdToPdf } = require("md-to-pdf");
 const { mkdir } = require("fs").promises;
 
-
 let subjects = {
   bis: "Business Intelligence System",
   cns: "Cryptography Network Security",
@@ -27,23 +26,23 @@ Object.keys(subjects).forEach(async (sub) => {
   }
 });
 
-let toPDF = async (path, cb, authKey,username) => {
+let toPDF = async (path, cb, authKey, username) => {
   const pdf = await mdToPdf({ path: path }).catch(console.error);
 
   let temp = false;
   if (pdf) {
-    if(!config.hasAccess(authKey,username)) {
-      temp = "-temp" + Date.now() + ".md";
-      path = path.replace(".md",temp)
+    if (!config.hasAccess(authKey, username)) {
+      temp = '-' + path.split("-")[1].replace(".md","");
       setTimeout(() => {
-       if(path.includes("temp")) fs.unlinkSync(path.replace(".md",".pdf"))
+        if (path.includes("temp")) fs.unlinkSync(path.replace(".md", ".pdf"));
+        if (path.includes("temp")) fs.unlinkSync(path);
       }, config.fileDeleteDelay * 1000);
     }
-    
+
     fs.writeFileSync(path.replace(".md", ".pdf"), pdf.content);
-  
-    cb(path.replace(".md", ".pdf"),temp ? temp.replace(".md","") : temp);
-    console.log("Done...")
+
+    cb(path.replace(".md", ".pdf"), temp ? temp.replace(".md", "") : temp);
+    console.log("Done...");
   } else {
     cb("-Error could not write PDF");
   }
@@ -56,31 +55,64 @@ function Datify() {
 //console.log(Datify());
 
 let heading = (title, number, type) => {
+  if(type.toLowerCase().startsWith("exp")) type = type.slice(0,10);
   let text = `<span style='color:red'><i> (${note}) </i> <br> <span style="color:green;"> </span> </span> \n \n # ${type} ${number}\n **Class** : CSE TY <br>**Subject** : ${title} <br>**Generated On** : ${Datify()}  \n <hr> \n\n`;
   return text;
 };
 
 class Generator {
-  constructor(subject, number,type, cb) {
+  constructor(subject, number, type, cb) {
     this.subject = subject ? subjects[subject] : "_";
     this.number = number;
     this.subjectPrefix = subject;
     this.year = 3;
-    this.type = type ?  type : "Assignment"
+    this.type = type ? type : "Assignment";
     // this.extra = extra ? extra : "BTech";
     this.c = 0;
     this.path = `./documents/${this.subjectPrefix}/${
       this.subjectPrefix + this.number
     }.md`;
 
+    this.__init__();
+
     this.readMeStream = fs.createWriteStream(this.path);
     this.readMeStream.write(heading(this.subject, this.number, this.type));
     this.callback = cb;
+  
   }
 
-  askQ(qs,authKey,username) {
- 
-    if(!subjects[this.subjectPrefix]) throw Error("ERROR :  Invalid subject prefix");
+  __init__() {
+    switch(this.type.charAt(0).toLowerCase()) {
+      case 'e': {
+        console.log(this.type);
+        let batch = this.type.toLowerCase().replace("experiment","");
+       this.path = this.path.replace(`${this.subjectPrefix + this.number}`,`${this.subjectPrefix + this.number + "exp" + batch}`)
+      }
+      break;
+
+      case 'q': {
+        console.log(this.type);
+        let qbNumber = this.type.toLowerCase().replace("questionbank","");
+        this.path = this.path.replace(`${this.subjectPrefix + this.number}`,`${this.subjectPrefix + this.number + "qb" + qbNumber}`)
+      }
+      break;
+
+     default : {}
+    
+
+  }
+}
+
+
+  askQ(qs, authKey, username) {
+    if (!subjects[this.subjectPrefix])
+      throw Error("ERROR :  Invalid subject prefix");
+    if (!config.hasAccess(authKey, username)) {
+      this.path = this.path.replace(".md", "-temp" + Date.now() + ".md");
+      this.readMeStream = fs.createWriteStream(
+        this.path
+      );
+    }
     console.log("Generating Answer...");
     this.AIStream = spawn("node", ["ai.mjs"]);
     this.AIStream.on("error", (e) => console.log(e));
@@ -99,13 +131,13 @@ class Generator {
       if (qs[this.c]) {
         this.AIStream.kill();
         this.AIStream = null;
-        this.askQ(qs,authKey,username);
+        this.askQ(qs, authKey, username);
       } else {
         this.readMeStream.write(` <i>${website} </i>`);
         this.readMeStream.end();
         console.log("Converting to PDF...");
 
-        toPDF(this.path, this.callback,authKey,username);
+        toPDF(this.path, this.callback, authKey, username);
       }
     });
   }
