@@ -77,6 +77,20 @@ class SubjectManager {
     fs.writeFileSync("./databases/" + this.subjectPrefix + ".json",JSON.stringify(this));
   }
 
+  delete(number,type) {
+    type = type.toLowerCase();
+    switch(type.charAt(0)) {
+      case 'e' : {
+        delete this.experiments[number + type.replace("experiment","")];
+      }
+      break;
+      default : delete this.assignments[number];
+    }
+
+    this.__export__();
+    this.__init__();
+  }
+
   addAssignment( qs, number, given, submission, user) {
     let ass = new Assignment(this.subjectPrefix, qs, number, given, submission, user);
     this.assignments[number] = ass;
@@ -84,7 +98,7 @@ class SubjectManager {
   }
 
   addExperiment( aim, number,batch, given, submission, user) {
-    let exp = new Experiment(this.subjectPrefix, qs, number, batch, given, submission, user);
+    let exp = new Experiment(this.subjectPrefix, aim, number, batch, given, submission, user);
     this.experiments[number + batch] = exp;
     this.__export__();
   }
