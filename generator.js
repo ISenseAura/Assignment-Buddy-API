@@ -76,7 +76,6 @@ class Generator {
     this.__init__();
 
     this.readMeStream = fs.createWriteStream(this.path);
-    this.readMeStream.write(heading(this.subject, this.number, this.type));
     this.callback = cb;
   
   }
@@ -115,6 +114,9 @@ class Generator {
       );
     }
   }
+
+  this.readMeStream.write(heading(this.subject, this.number, this.type));
+
     console.log("Generating Answer...");
     this.AIStream = spawn("node", ["ai.mjs"]);
     this.AIStream.on("error", (e) => console.log(e));
